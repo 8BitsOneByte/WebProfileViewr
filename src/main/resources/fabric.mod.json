@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "webprofileviewer",
+  "version": "${version}",
+  "name": "WebProfileViewer",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/webprofileviewer/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "org.exmple.webprofileviewer.client.WebprofileviewerDataGenerator"
+    ],
+    "client": [
+      "org.exmple.webprofileviewer.client.WebprofileviewerClient"
+    ],
+    "main": [
+      "org.exmple.webprofileviewer.Webprofileviewer"
+    ]
+  },
+  "mixins": [
+    "webprofileviewer.mixins.json",
+    {
+      "config": "webprofileviewer.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
