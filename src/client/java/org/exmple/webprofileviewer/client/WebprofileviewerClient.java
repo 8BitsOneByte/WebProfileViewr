@@ -69,30 +69,88 @@ public class WebprofileviewerClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                dispatcher.register(ClientCommandManager.literal("web")
-                        .then(ClientCommandManager.argument("playername", StringArgumentType.string())
-                                .suggests((context, builder) -> {
 
-                                    if (Minecraft.getInstance().getConnection() != null) {
-                                        String getInputPrefix = builder.getRemaining().toLowerCase();
-                                        Minecraft.getInstance().getConnection().getListedOnlinePlayers().stream()
-                                                .map(info -> info.getProfile().name())
-                                                .filter(name -> name.toLowerCase().startsWith(getInputPrefix))
-                                                .forEach(builder::suggest);
-                                    }
-                                    return builder.buildFuture();
-                                })
+        String cmd = "web";
+        for (int i = 1; i < (1 << cmd.length()); i++) {
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < cmd.length(); j++) {
+                if (((i >> j) & 1) == 1) {
+                    sb.append(Character.toUpperCase(cmd.charAt(j)));
+                } else {
+                    sb.append(Character.toLowerCase(cmd.charAt(j)));
+                }
+
+
+                ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                        dispatcher.register(ClientCommandManager.literal(sb.toString())
+                                .then(ClientCommandManager.argument("playername", StringArgumentType.string())
+                                        .suggests((context, builder) -> {
+
+                                            if (Minecraft.getInstance().getConnection() != null) {
+                                                String getInputPrefix = builder.getRemaining().toLowerCase();
+                                                Minecraft.getInstance().getConnection().getListedOnlinePlayers().stream()
+                                                        .map(info -> info.getProfile().name())
+                                                        .filter(name -> name.toLowerCase().startsWith(getInputPrefix))
+                                                        .forEach(builder::suggest);
+                                            }
+                                            return builder.buildFuture();
+                                        })
+                                        .executes(ctx -> {
+                                            String player = StringArgumentType.getString(ctx, "playername");
+
+                                            CompletableFuture
+                                                    .supplyAsync(() -> {
+                                                        try {
+                                                            return extractBWStats(player);
+                                                        } catch (Exception e) {
+                                                            throw new RuntimeException(e);
+                                                        }
+                                                    }, IO_EXEC)
+                                                    .thenAcceptAsync(msg -> ctx.getSource().sendFeedback(
+                                                            Component.literal(msg).withStyle(ChatFormatting.AQUA)), Minecraft.getInstance())
+                                                    .exceptionally(ex -> {
+                                                        Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
+                                                                Component.literal("Failed: " + ex.getMessage())));
+                                                        return null;
+                                                    });
+
+                                            return 1; // 立即返回，不阻塞服务器主线程
+                                        }))));
+            }
+        }
+
+        String cmds = "weball";
+        for (int i = 1; i < (1 << cmds.length()); i++) {
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < cmd.length(); j++) {
+                if (((i >> j) & 1) == 1) {
+                    sb.append(Character.toUpperCase(cmd.charAt(j)));
+                } else {
+                    sb.append(Character.toLowerCase(cmd.charAt(j)));
+                }
+
+
+                ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+                        dispatcher.register(ClientCommandManager.literal(sb.toString())
                                 .executes(ctx -> {
-                                    String player = StringArgumentType.getString(ctx, "playername");
 
                                     CompletableFuture
                                             .supplyAsync(() -> {
-                                                try {
-                                                    return extractBWStats(player);
-                                                } catch (Exception e) {
-                                                    throw new RuntimeException(e);
+                                                if (Minecraft.getInstance().getConnection() != null) {
+                                                    Minecraft.getInstance().getConnection().getListedOnlinePlayers().stream()
+                                                            .map(info -> info.getProfile().name())
+                                                            .forEach(name -> {
+                                                                try {
+                                                                    String stats = extractBWStats(name);
+                                                                    Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
+                                                                            Component.literal(stats).withStyle(ChatFormatting.AQUA)));
+                                                                } catch (Exception e) {
+                                                                    Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
+                                                                            Component.literal("Failed to fetch stats for " + name + ": " + e.getMessage())));
+                                                                }
+                                                            });
                                                 }
+                                                return "Finished fetching stats for all online players.";
                                             }, IO_EXEC)
                                             .thenAcceptAsync(msg -> ctx.getSource().sendFeedback(
                                                     Component.literal(msg).withStyle(ChatFormatting.AQUA)), Minecraft.getInstance())
@@ -103,39 +161,10 @@ public class WebprofileviewerClient implements ClientModInitializer {
                                             });
 
                                     return 1; // 立即返回，不阻塞服务器主线程
-                                }))));
+                                })));
+            }
 
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                dispatcher.register(ClientCommandManager.literal("weball")
-                        .executes(ctx -> {
 
-                            CompletableFuture
-                                    .supplyAsync(() -> {
-                                        if (Minecraft.getInstance().getConnection() != null) {
-                                            Minecraft.getInstance().getConnection().getListedOnlinePlayers().stream()
-                                                    .map(info -> info.getProfile().name())
-                                                    .forEach(name -> {
-                                                        try {
-                                                            String stats = extractBWStats(name);
-                                                            Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
-                                                                    Component.literal(stats).withStyle(ChatFormatting.AQUA)));
-                                                        } catch (Exception e) {
-                                                            Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
-                                                                    Component.literal("Failed to fetch stats for " + name + ": " + e.getMessage())));
-                                                        }
-                                                    });
-                                        }
-                                        return "Finished fetching stats for all online players.";
-                                    }, IO_EXEC)
-                                    .thenAcceptAsync(msg -> ctx.getSource().sendFeedback(
-                                            Component.literal(msg).withStyle(ChatFormatting.AQUA)), Minecraft.getInstance())
-                                    .exceptionally(ex -> {
-                                        Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
-                                                Component.literal("Failed: " + ex.getMessage())));
-                                        return null;
-                                    });
-
-                            return 1; // 立即返回，不阻塞服务器主线程
-                        })));
+        }
     }
 }
