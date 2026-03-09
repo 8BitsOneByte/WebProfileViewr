@@ -23,6 +23,78 @@ public class WebprofileviewerClient implements ClientModInitializer {
         return thread;
     });
 
+    // Token bucket rate limiter to replace fixed sleeps in /weball.
+    // Capacity allows brief bursts; refillRate is tokens per second.
+    private static final TokenBucket RATE_LIMITER = new TokenBucket(5, 1.0);
+
+    private static class TokenBucket {
+        private final double capacity;
+        private final double refillPerSecond;
+        private double tokens;
+        private long lastRefillNanos;
+
+        TokenBucket(double capacity, double refillPerSecond) {
+            this.capacity = capacity;
+            this.refillPerSecond = refillPerSecond;
+            this.tokens = capacity; // start full so first few requests can go fast
+            this.lastRefillNanos = System.nanoTime();
+        }
+
+        private void refill() {
+            long now = System.nanoTime();
+            double elapsedSeconds = (now - lastRefillNanos) / 1_000_000_000.0;
+            if (elapsedSeconds <= 0) return;
+            tokens = Math.min(capacity, tokens + elapsedSeconds * refillPerSecond);
+            lastRefillNanos = now;
+        }
+
+        // Blocks until a token is available or the thread is interrupted.
+        synchronized void consume() throws InterruptedException {
+            while (true) {
+                refill();
+                if (tokens >= 1.0) {
+                    tokens -= 1.0;
+                    return;
+                }
+                // compute how long until next token is available (seconds)
+                double needed = 1.0 - tokens;
+                long waitNanos = (long) Math.ceil((needed / refillPerSecond) * 1_000_000_000.0);
+                // convert to millis for Thread.sleep, but keep at least 1ms to avoid tight-loop
+                long waitMillis = Math.max(1, waitNanos / 1_000_000);
+                this.wait(waitMillis);
+            }
+        }
+
+        // notify to wake up potential waiters when time passes; caller can optionally call
+        // but since refill is time-based we don't have a separate scheduler. We'll notifyAll
+        // from places that might change state after sleep; not strictly necessary here.
+        synchronized void wake() {
+            this.notifyAll();
+        }
+    }
+
+    // Simple holder used to return both the summary message and the list of dangerous players
+    private static class FetchResult {
+        final String summary;
+        final java.util.List<PlayerKD> dangerous;
+
+        FetchResult(String summary, java.util.List<PlayerKD> dangerous) {
+            this.summary = summary;
+            this.dangerous = dangerous;
+        }
+    }
+
+    // small holder for a dangerous player's name and final KD string
+    private static class PlayerKD {
+        final String name;
+        final String kd;
+
+        PlayerKD(String name, String kd) {
+            this.name = name;
+            this.kd = kd;
+        }
+    }
+
     private String cleanPlayerName(String rawName) {
         if (rawName == null || rawName.isEmpty()) {
             return "";
@@ -85,6 +157,13 @@ public class WebprofileviewerClient implements ClientModInitializer {
 
                 ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
                         dispatcher.register(ClientCommandManager.literal(cmd)
+                                .executes(ctx -> {
+                                    // When user types only `/web` without args, show a red usage message
+                                    ctx.getSource().sendFeedback(
+                                            Component.literal("Correct usage:/web <Username>").withStyle(ChatFormatting.RED)
+                                    );
+                                    return 1;
+                                })
                                 .then(ClientCommandManager.argument("playername", StringArgumentType.string())
                                         .suggests((context, builder) -> {
 
@@ -153,6 +232,11 @@ public class WebprofileviewerClient implements ClientModInitializer {
 
                                     CompletableFuture
                                             .supplyAsync(() -> {
+                                                // start timer for total elapsed time
+                                                long startNano = System.nanoTime();
+
+                                                java.util.List<PlayerKD> dangerous = new java.util.ArrayList<>();
+
                                                 if (Minecraft.getInstance().getConnection() != null) {
                                                     // collect cleaned player names first, then iterate sequentially
                                                     String[] names = Minecraft.getInstance().getConnection().getListedOnlinePlayers().stream()
@@ -164,6 +248,23 @@ public class WebprofileviewerClient implements ClientModInitializer {
                                                         String name = names[idx];
                                                          try {
                                                              String stats = extractBWStats(name);
+
+                                                             // detect Final K/D value from stats string
+                                                             int kdIndex = stats.indexOf("Final K/D:");
+                                                             if (kdIndex >= 0) {
+                                                                 String rest = stats.substring(kdIndex + "Final K/D:".length());
+                                                                 String firstLine = rest.split("\\r?\\n")[0].trim();
+                                                                 try {
+                                                                     double kdVal = Double.parseDouble(firstLine);
+                                                                     if (kdVal > 1.0) {
+                                                                         // store both name and KD string for later colored printing
+                                                                         dangerous.add(new PlayerKD(name, firstLine));
+                                                                     }
+                                                                 } catch (NumberFormatException nfe) {
+                                                                     // ignore unparsable values
+                                                                 }
+                                                             }
+
                                                              Minecraft.getInstance().execute(() -> {
                                                                  // Show player name and [current/total] (bracket+colon in gold)
                                                                  String headerStr = ChatFormatting.YELLOW + name + " " + ChatFormatting.GOLD + "[" + current + "/" + total + "]:";
@@ -192,24 +293,42 @@ public class WebprofileviewerClient implements ClientModInitializer {
                                                              });
                                                          }
                                                          //设置延迟，防止触发Hypixel的反爬虫机制
-                                                         try {
-                                                             Thread.sleep(500);
-                                                         } catch (InterruptedException ie) {
-                                                             Thread.currentThread().interrupt();
-                                                             // If interrupted, stop further processing
-                                                             break;
-                                                         }
+                                                        try {
+                                                            // Use token-bucket based rate limiter instead of fixed sleep.
+                                                            // This blocks only as long as necessary and allows short bursts.
+                                                            RATE_LIMITER.consume();
+                                                        } catch (InterruptedException ie) {
+                                                            Thread.currentThread().interrupt();
+                                                            // If interrupted, stop further processing
+                                                            break;
+                                                        }
                                                     }
                                                 }
-                                                return "Finished fetching stats for all online players.";
+
+                                                double elapsedSeconds = (System.nanoTime() - startNano) / 1_000_000_000.0;
+                                                String summary = String.format("Finished fetching stats for all online players. Took %.3f seconds", elapsedSeconds);
+                                                return new FetchResult(summary, dangerous);
                                             }, IO_EXEC)
-                                            .thenAcceptAsync(msg -> ctx.getSource().sendFeedback(
-                                                    Component.literal(msg).withStyle(ChatFormatting.AQUA)), Minecraft.getInstance())
-                                            .exceptionally(ex -> {
-                                                Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
-                                                        Component.literal("Failed: " + ex.getMessage())));
-                                                return null;
-                                            });
+                                            .thenAcceptAsync(result -> {
+                                                // print summary first
+                                                ctx.getSource().sendFeedback(Component.literal(result.summary).withStyle(ChatFormatting.AQUA));
+
+                                                // if any dangerous players found, print a red header and each name in red on its own line
+                                                if (result.dangerous != null && !result.dangerous.isEmpty()) {
+                                                    ctx.getSource().sendFeedback(Component.literal("Dangerous Players:").withStyle(ChatFormatting.RED));
+                                                    for (PlayerKD pk : result.dangerous) {
+                                                        // name in red, KD in white within parentheses
+                                                        Component comp = Component.literal(pk.name).withStyle(ChatFormatting.RED)
+                                                                .append(Component.literal(" (" + pk.kd + ")").withStyle(ChatFormatting.WHITE));
+                                                        ctx.getSource().sendFeedback(comp);
+                                                    }
+                                                }
+                                            }, Minecraft.getInstance())
+                                             .exceptionally(ex -> {
+                                                 Minecraft.getInstance().execute(() -> ctx.getSource().sendFeedback(
+                                                         Component.literal("Failed: " + ex.getMessage())));
+                                                 return null;
+                                             });
 
                                     return 1; // 立即返回，不阻塞服务器主线程
                                 })));
@@ -218,3 +337,16 @@ public class WebprofileviewerClient implements ClientModInitializer {
 
 
     }//WebprofileviewerClient类的大括号
+
+
+
+
+
+
+
+
+
+
+
+
+
