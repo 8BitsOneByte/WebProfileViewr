@@ -79,7 +79,11 @@ public class WeballCommand {
                                                         }
                                                     });
                                                 } catch (Exception e) {
-                                                    // On failure, show a user-friendly, colored message similar to /web
+                                                    // Player query failed - likely nicked (anonymous)
+                                                    // Add to dangerous list with "nicked" marker
+                                                    dangerous.add(new PlayerKD(name, "nicked"));
+
+                                                    // Show user-friendly error message during query
                                                     Minecraft.getInstance().execute(() -> {
                                                         String failMsg = ChatFormatting.YELLOW + name + " " + ChatFormatting.GOLD + "[" + current + "/" + total + "]:" + ChatFormatting.RED + "\nThis player may be nicked!";
                                                         ctx.getSource().sendFeedback(Component.literal(failMsg));
