@@ -54,12 +54,4 @@ public class RateLimiter {
             this.wait(waitMillis);
         }
     }
-
-    /**
-     * Notifies all waiting threads that the state may have changed.
-     * Can be called after waiting to wake up potential waiters.
-     */
-    public synchronized void wake() {
-        this.notifyAll();
-    }
 }

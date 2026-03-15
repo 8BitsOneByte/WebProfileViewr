@@ -50,18 +50,10 @@ public class WebCommand {
                                                 Component header = Component.literal(cleanPlayer + ":").withStyle(ChatFormatting.YELLOW);
                                                 ctx.getSource().sendFeedback(header);
 
-                                                // Split stats into lines and colorize label vs value
-                                                String[] lines = msg.split("\\r?\\n");//根据换行符分割成多行
-                                                for (String line : lines) {
-                                                    if (line.contains(":")) {
-                                                        int colonIdx = line.indexOf(":");
-                                                        String label = line.substring(0, colonIdx).trim();
-                                                        String value = line.substring(colonIdx + 1).trim();
-                                                        String colored = ChatFormatting.AQUA + label + ": " + ChatFormatting.WHITE + value;
-                                                        ctx.getSource().sendFeedback(Component.literal(colored));
-                                                    } else {
-                                                        ctx.getSource().sendFeedback(Component.literal(ChatFormatting.WHITE + line));
-                                                    }
+                                                // Format and display stats with consistent coloring
+                                                Component[] formattedLines = StatsFormatter.formatStatsLines(msg);
+                                                for (Component line : formattedLines) {
+                                                    ctx.getSource().sendFeedback(line);
                                                 }
                                             }), Minecraft.getInstance())
                                             .exceptionally(ex -> {
