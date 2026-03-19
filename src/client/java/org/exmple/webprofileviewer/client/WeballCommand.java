@@ -1,5 +1,6 @@
 package org.exmple.webprofileviewer.client;
 
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -7,6 +8,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import org.exmple.webprofileviewer.client.config.ModConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +25,70 @@ public class WeballCommand {
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
                 dispatcher.register(ClientCommandManager.literal(CMD_WEBALL)
-                        .executes(WeballCommand::execute)));
+                        .executes(WeballCommand::execute)
+                        .then(ClientCommandManager.literal("config")
+                                .then(ClientCommandManager.literal("Dangerous_Players_Final_KD")
+                                        // get 子命令：获取当前值
+                                        .then(ClientCommandManager.literal("get")
+                                                .executes(WeballCommand::handleGetCommand))
+                                        // set 子命令：设置新值
+                                        .then(ClientCommandManager.literal("set")
+                                                .then(ClientCommandManager.argument("threshold", DoubleArgumentType.doubleArg(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY))
+                                                        .executes(WeballCommand::handleSetCommand)))
+                                        // reset 子命令：重置为默认值
+                                        .then(ClientCommandManager.literal("reset")
+                                                .executes(WeballCommand::handleResetCommand))))));
+    }
+
+    private static int handleGetCommand(CommandContext<FabricClientCommandSource> ctx) {
+        double currentThreshold = ModConfig.getInstance().dangerousPlayersKDThreshold;
+        ctx.getSource().sendFeedback(
+            Component.literal("Current Dangerous Players KD Threshold: ")
+                .withStyle(ChatFormatting.AQUA)
+                .append(Component.literal(String.valueOf(currentThreshold)).withStyle(ChatFormatting.YELLOW))
+        );
+        return 1;
+    }
+
+    private static int handleSetCommand(CommandContext<FabricClientCommandSource> ctx) {
+        double threshold = DoubleArgumentType.getDouble(ctx, "threshold");
+        
+        // 检测阈值是否 <= 0,不允许
+        if (threshold <= 0.0) {
+            ctx.getSource().sendFeedback(
+                Component.literal("Invalid threshold value. Must be greater than 0.0")
+                    .withStyle(ChatFormatting.RED)
+            );
+            return 0;
+        }
+        
+        // 保存配置
+        ModConfig config = ModConfig.getInstance();
+        config.dangerousPlayersKDThreshold = threshold;
+        config.save();
+        
+        // 发送阈值设置成功消息
+        ctx.getSource().sendFeedback(
+            Component.literal("Dangerous Players KD Threshold set to: ")
+                .withStyle(ChatFormatting.AQUA)
+                .append(Component.literal(String.valueOf(threshold)).withStyle(ChatFormatting.YELLOW))
+        );
+        
+        return 1;
+    }
+
+    private static int handleResetCommand(CommandContext<FabricClientCommandSource> ctx) {
+        ModConfig config = ModConfig.getInstance();
+        config.dangerousPlayersKDThreshold = 1.0;
+        config.save();
+        
+        ctx.getSource().sendFeedback(
+            Component.literal("Dangerous Players KD Threshold reset to default: ")
+                .withStyle(ChatFormatting.AQUA)
+                .append(Component.literal("1.0").withStyle(ChatFormatting.YELLOW))
+        );
+        
+        return 1;
     }
 
     private static int execute(CommandContext<FabricClientCommandSource> ctx) {
@@ -73,11 +138,12 @@ public class WeballCommand {
     private static void processSinglePlayer(CommandContext<FabricClientCommandSource> ctx, String name, int current, int total, List<PlayerKD> dangerous) throws Exception {
         BWStatsExtractor.BWStats stats = ServiceContainer.getStatsExtractor().extractBWStats(name);
 
-        // Detect dangerous player
+        // Detect dangerous player using configured threshold
         String kdValue = stats.getFinalKD();
-        if (kdValue != null && !"未找到".equals(kdValue)) {
+        if (kdValue != null && !GlobalConstants.NOT_FOUND.equals(kdValue)) {
             double kdVal = StatsFormatter.parseStatAsDouble(kdValue);
-            if (kdVal > 1.0) {
+            double threshold = ModConfig.getInstance().dangerousPlayersKDThreshold;
+            if (kdVal > threshold) {
                 dangerous.add(new PlayerKD(name, kdValue));
             }
         }

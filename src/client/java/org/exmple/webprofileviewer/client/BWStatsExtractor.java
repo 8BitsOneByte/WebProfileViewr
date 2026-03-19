@@ -11,10 +11,10 @@ public class BWStatsExtractor {
                 .userAgent("Mozilla/5.0")
                 .get();
 
-        String finalKD4v4 = "未找到";
-        String finalKD2v2 = "未找到";
-        String totalWins = "未找到";
-        String finalKD = "未找到";
+        String finalKD4v4 = GlobalConstants.NOT_FOUND;
+        String finalKD2v2 = GlobalConstants.NOT_FOUND;
+        String totalWins = GlobalConstants.NOT_FOUND;
+        String finalKD = GlobalConstants.NOT_FOUND;
 
         for (Element tdName : doc.select("#stats-content-bedwars td.statName")) {
             String nameText = tdName.text().trim();
@@ -25,17 +25,17 @@ public class BWStatsExtractor {
 
             String value = tdValue.text();
 
-            if ("4v4v4v4 Final K/D".equalsIgnoreCase(nameText) && "未找到".equals(finalKD4v4)) {
+            if (BWStatsConstants.BWCONST_4V4V4V4_FINAL_KD.equalsIgnoreCase(nameText) && GlobalConstants.NOT_FOUND.equals(finalKD4v4)) {
                 finalKD4v4 = value;
-            } else if ("Doubles Final K/D".equalsIgnoreCase(nameText) && "未找到".equals(finalKD2v2)) {
+            } else if (BWStatsConstants.BWCONST_DOUBLES_FINAL_KD.equalsIgnoreCase(nameText) && GlobalConstants.NOT_FOUND.equals(finalKD2v2)) {
                 finalKD2v2 = value;
-            } else if ("Wins".equalsIgnoreCase(nameText) && "未找到".equals(totalWins)) {
+            } else if (BWStatsConstants.BWCONST_TOTALWINS.equalsIgnoreCase(nameText) && GlobalConstants.NOT_FOUND.equals(totalWins)) {
                 totalWins = value;
-            } else if ("Final K/D".equalsIgnoreCase(nameText) && "未找到".equals(finalKD)) {
+            } else if (BWStatsConstants.BWCONST_FINAL_KD.equalsIgnoreCase(nameText) && GlobalConstants.NOT_FOUND.equals(finalKD)) {
                 finalKD = value;
             }
 
-            if (!"未找到".equals(finalKD4v4) && !"未找到".equals(finalKD2v2) && !"未找到".equals(totalWins) && !"未找到".equals(finalKD)) {
+            if (!GlobalConstants.NOT_FOUND.equals(finalKD4v4) && !GlobalConstants.NOT_FOUND.equals(finalKD2v2) && !GlobalConstants.NOT_FOUND.equals(totalWins) && !GlobalConstants.NOT_FOUND.equals(finalKD)) {
                 break;
             }
         }

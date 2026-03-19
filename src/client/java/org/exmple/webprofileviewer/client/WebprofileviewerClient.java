@@ -3,6 +3,7 @@ package org.exmple.webprofileviewer.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import org.exmple.webprofileviewer.client.ui.ModScreen;
 //弃用
 //import net.minecraft.ChatFormatting;
 //import net.minecraft.client.Minecraft;
@@ -19,10 +20,12 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 //import java.util.concurrent.Executors;
 
 public class WebprofileviewerClient implements ClientModInitializer {
-    // Simple holder used to return both the summary message and the list of dangerous players
-
     @Override
     public void onInitializeClient() {
+        // Initialize UI commands
+        ModScreen.initClass();
+        
+        // Initialize other commands
         WebCommand.register();
         WeballCommand.register();
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> AsyncExecutor.shutdown());
