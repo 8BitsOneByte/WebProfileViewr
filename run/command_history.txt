@@ -26,3 +26,10 @@
 /weball config Dangerous_Players_Final_KD set 3
 /weball config Dangerous_Players_Final_KD get
 /webprofileviewer
+/web Player258
+/web cleanders
+/weball
+/webprofileviewer
+/weball config Dangerous_Players_Final_KD get
+/weball config Dangerous_Players_Final_KD reset
+/weball config Dangerous_Players_Final_KD get
