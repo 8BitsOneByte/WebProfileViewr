@@ -23,7 +23,6 @@ public final class AntiAfkHud {
         }
         boolean useSmall = ModConfig.getInstance().antiAfkIconSmall;
         Identifier texture = useSmall ? TEXTURE_SMALL : TEXTURE_LARGE;
-        int texSize = useSmall ? TEX_SMALL : TEX_LARGE;
         int x = 8;
         int y = (context.guiHeight() - DRAW_SIZE) / 2;
         context.blit(
