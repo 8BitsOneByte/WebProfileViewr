@@ -46,8 +46,8 @@ protected ModScreen(){
         gridWidget.defaultCellSetting().alignHorizontallyCenter();
         GridLayout.RowHelper adder = gridWidget.createRowHelper(2);
         adder.addChild(Button.builder(CONFIGURATION_TEXT, button -> this.openConfig()).width(BUTTON_WIDTH).build(), 2);
-        adder.addChild(Button.builder(SOURCE_TEXT, ConfirmLinkScreen.confirmLink(this, "https://github.com/SkyblockerMod/Skyblocker")).width(HALF_BUTTON_WIDTH).build());
-        adder.addChild(Button.builder(REPORT_BUGS_TEXT, ConfirmLinkScreen.confirmLink(this, "https://github.com/SkyblockerMod/Skyblocker/issues")).width(HALF_BUTTON_WIDTH).build());
+        adder.addChild(Button.builder(SOURCE_TEXT, ConfirmLinkScreen.confirmLink(this, "https://https://github.com/8BitsOneByte/WebProfileViewr")).width(HALF_BUTTON_WIDTH).build());
+        adder.addChild(Button.builder(REPORT_BUGS_TEXT, ConfirmLinkScreen.confirmLink(this, "https://https://github.com/8BitsOneByte/WebProfileViewr/issues")).width(HALF_BUTTON_WIDTH).build());
         adder.addChild(Button.builder(WEBSITE_TEXT, ConfirmLinkScreen.confirmLink(this, "https://hysky.de/")).width(HALF_BUTTON_WIDTH).build());
         adder.addChild(Button.builder(MODRINTH_TEXT, ConfirmLinkScreen.confirmLink(this, "https://modrinth.com/mod/skyblocker-liap")).width(HALF_BUTTON_WIDTH).build());
         adder.addChild(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).width(BUTTON_WIDTH).build(), 2);
@@ -58,6 +58,9 @@ protected ModScreen(){
     }
     private void openConfig() {
         this.minecraft.setScreen(ModConfigManager.createGUI(this));
+    }
+    public static ModScreen create() {
+        return new ModScreen();
     }
 
 

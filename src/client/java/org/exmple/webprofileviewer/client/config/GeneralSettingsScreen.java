@@ -7,6 +7,7 @@ import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import org.exmple.webprofileviewer.client.AntiAFKManager;
 
 public class GeneralSettingsScreen extends Screen {
     private static final int SPACING = 8;
@@ -23,6 +24,7 @@ public class GeneralSettingsScreen extends Screen {
     
     @Override
     protected void init() {
+        AntiAFKManager.setEnabled(this.config.antiAFK);
         this.layout = new HeaderAndFooterLayout(this, 50, 100);
         // 添加顶部标题
         this.layout.addToHeader(new StringWidget(this.getTitle(), this.font));
@@ -44,6 +46,7 @@ public class GeneralSettingsScreen extends Screen {
             Component.literal(""),
             (button, value) -> {
                 config.antiAFK = value;
+                AntiAFKManager.setEnabled(value);
                 config.save();
             }
         );
@@ -154,5 +157,4 @@ public class GeneralSettingsScreen extends Screen {
         this.minecraft.setScreen(this.parent);
     }
 }
-
 

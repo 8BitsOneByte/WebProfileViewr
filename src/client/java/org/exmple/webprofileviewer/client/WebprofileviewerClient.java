@@ -3,6 +3,10 @@ package org.exmple.webprofileviewer.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.minecraft.resources.Identifier;
+import org.exmple.webprofileviewer.client.ui.AntiAfkHud;
 import org.exmple.webprofileviewer.client.ui.ModScreen;
 //弃用
 //import net.minecraft.ChatFormatting;
@@ -24,23 +28,22 @@ public class WebprofileviewerClient implements ClientModInitializer {
     public void onInitializeClient() {
         // Initialize UI commands
         ModScreen.initClass();
+        // Register global keybindings (mod menu, shared category)
+        KeyBindingRegistry.register();
         
+        HudElementRegistry.attachElementAfter(
+            VanillaHudElements.CROSSHAIR,
+            Identifier.parse("webprofileviewer:antiafk_hud"),
+            (context, tickCounter) -> AntiAfkHud.render(context)
+        );
+
         // Initialize other commands
         WebCommand.register();
         WeballCommand.register();
+        
+        // Initialize AntiAFK handler (test)
+        AntiAFKHandler.register();
+        
         ClientLifecycleEvents.CLIENT_STOPPING.register(client -> AsyncExecutor.shutdown());
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

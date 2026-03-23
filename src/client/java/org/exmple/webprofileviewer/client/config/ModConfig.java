@@ -14,6 +14,7 @@ public class ModConfig {
     
     // 配置字段
     public boolean antiAFK = false;
+    public boolean antiAfkIconSmall = true;
     public boolean showDangerousPlayers = true;
     public boolean showFinalKD = true;
     public boolean showDoublesFinalKD = true;
@@ -58,4 +59,3 @@ public class ModConfig {
         return FabricLoader.getInstance().getConfigDir().resolve(CONFIG_FILE);
     }
 }
-

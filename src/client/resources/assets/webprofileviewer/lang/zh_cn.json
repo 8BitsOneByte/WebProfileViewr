@@ -5,7 +5,7 @@
   "text.webprofileviewer.modrinth":"Modrinth",
   "menu.reportBugs":"报告漏洞",
   "text.webprofileviewer.general_settings": "常规设置",
-  "text.webprofileviewer.placeholder_1": "占位符 1",
+  "text.webprofileviewer.ui_settings": "UI设置",
   "text.webprofileviewer.placeholder_2": "占位符 2",
   "text.webprofileviewer.placeholder_3": "占位符 3",
   "text.webprofileviewer.anti_afk_on": "防止AFK: 开启",
@@ -19,6 +19,10 @@
   "text.webprofileviewer.show_quads_final_kd_on": "显示四人最终KD: 开启",
   "text.webprofileviewer.show_quads_final_kd_off": "显示四人最终KD: 关闭",
   "text.webprofileviewer.show_total_wins_on": "显示总胜场: 开启",
-  "text.webprofileviewer.show_total_wins_off": "显示总胜场: 关闭"
+  "text.webprofileviewer.show_total_wins_off": "显示总胜场: 关闭",
+  "key.webprofileviewer.open_mod_menu": "打开模组菜单",
+  "key.category.webprofileviewer.custom_category": "WebProfileViewer",
+  "key.webprofileviewer.antiafk_toggle": "切换防AFK",
+  "text.webprofileviewer.anti_afk_icon_large": "防止AFK图标：大",
+  "text.webprofileviewer.anti_afk_icon_small": "防止AFK图标：小"
 }
-

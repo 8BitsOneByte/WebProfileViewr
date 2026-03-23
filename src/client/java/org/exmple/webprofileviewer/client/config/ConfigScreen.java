@@ -30,8 +30,8 @@ public class ConfigScreen extends Screen {
             this.minecraft.setScreen(new GeneralSettingsScreen(this));
         }).build());
         
-        adder.addChild(Button.builder(Component.translatable("text.webprofileviewer.placeholder_1"), button -> {
-            // TODO: 打开设置页面2
+        adder.addChild(Button.builder(Component.translatable("text.webprofileviewer.ui_settings"), button -> {
+            this.minecraft.setScreen(new UiSettingsScreen(this));
         }).build());
         
         adder.addChild(Button.builder(Component.translatable("text.webprofileviewer.placeholder_2"), button -> {
@@ -54,4 +54,3 @@ public class ConfigScreen extends Screen {
         this.minecraft.setScreen(this.parent);
     }
 }
-

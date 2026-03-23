@@ -33,3 +33,9 @@
 /weball config Dangerous_Players_Final_KD get
 /weball config Dangerous_Players_Final_KD reset
 /weball config Dangerous_Players_Final_KD get
+/webprofileviewer
+/weball config Dangerous_Players_Final_KD get
+/webprofileviewer
+/web Player400
+/web maomao19yu
+/webprofileviewer
